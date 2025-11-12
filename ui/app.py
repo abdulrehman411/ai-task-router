@@ -778,6 +778,12 @@ def save_to_history(task_spec: TaskSpec, result: FinalPackage):
 
 def main():
     """Main application."""
+    # Initialize session state
+    if 'dark_mode' not in st.session_state:
+        st.session_state.dark_mode = False
+    if 'task_history' not in st.session_state:
+        st.session_state.task_history = []
+    
     # Apply CSS based on theme
     st.markdown(get_css(st.session_state.dark_mode), unsafe_allow_html=True)
     
