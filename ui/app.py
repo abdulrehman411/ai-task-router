@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="AI Task Router",
     page_icon=None,
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Initialize session state
@@ -35,6 +35,21 @@ if 'dark_mode' not in st.session_state:
 
 # API Configuration
 DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8000")
+
+def check_backend_health(api_url: str = DEFAULT_API_URL) -> tuple[bool, str]:
+    """Check if backend server is running and healthy."""
+    try:
+        response = requests.get(f"{api_url}/health", timeout=5)
+        if response.status_code == 200:
+            return True, "Backend server is healthy"
+        else:
+            return False, f"Backend returned status {response.status_code}"
+    except requests.exceptions.Timeout:
+        return False, "Backend server is not responding (timeout)"
+    except requests.exceptions.ConnectionError:
+        return False, "Cannot connect to backend server"
+    except requests.exceptions.RequestException as e:
+        return False, f"Backend connection error: {str(e)}"
 
 def extract_text_from_pdf(uploaded_file) -> str:
     """Extract text from uploaded PDF file."""
@@ -783,24 +798,73 @@ def main():
         st.session_state.dark_mode = False
     if 'task_history' not in st.session_state:
         st.session_state.task_history = []
+    if 'last_health_check' not in st.session_state:
+        st.session_state.last_health_check = 0
     
     # Apply CSS based on theme
     st.markdown(get_css(st.session_state.dark_mode), unsafe_allow_html=True)
     
+    # Sidebar Configuration
+    with st.sidebar:
+        st.header("⚙️ Configuration")
+        
+        # Backend URL Configuration
+        st.subheader("Backend Settings")
+        api_url = st.text_input(
+            "Backend API URL",
+            value=DEFAULT_API_URL,
+            help="URL of your backend API server"
+        )
+        
+        # Auto-refresh toggle
+        auto_refresh = st.checkbox(
+            "🔄 Auto-check backend status",
+            value=True,
+            help="Automatically check backend health every 30 seconds"
+        )
+        
+        if auto_refresh:
+            st.caption("Status will refresh automatically")
+        
+        st.divider()
+        
+        # Manual refresh button
+        if st.button("🔄 Check Backend Status", type="secondary"):
+            is_healthy, status_message = check_backend_health(api_url)
+            if is_healthy:
+                st.success("✅ Backend is healthy!")
+            else:
+                st.error(f"❌ {status_message}")
+        
+        st.divider()
+        
+        # Backend info
+        st.subheader("Backend Info")
+        st.code(f"Health Check: {api_url}/health")
+        st.code(f"API Endpoint: {api_url}/generate")
+    
+    # Auto-refresh logic
+    current_time = datetime.now().timestamp()
+    if auto_refresh and (current_time - st.session_state.last_health_check > 30):
+        st.session_state.last_health_check = current_time
+        st.rerun()
+    
     # Theme Toggle Button (Top Right)
-    col_toggle, _ = st.columns([1, 20])
+    col_toggle, col_status, _ = st.columns([1, 2, 20])
     with col_toggle:
         if st.button("🌙" if not st.session_state.dark_mode else "☀️", key="theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
     
-    # Header Section
-    st.markdown("""
-        <div class="header-section">
-            <div class="main-title">AI Task Router</div>
-            <div class="subtitle">Intelligent task processing powered by specialized AI agents</div>
-        </div>
-    """, unsafe_allow_html=True)
+    with col_status:
+        # Check backend health with configured URL
+        is_healthy, status_message = check_backend_health(api_url)
+        if is_healthy:
+            st.success("🟢 Backend Online")
+        else:
+            st.error("🔴 Backend Offline")
+            if not auto_refresh:  # Only show detailed message if auto-refresh is off
+                st.caption(status_message)
     
     # Main Content
     col_left, col_right = st.columns([2, 1])
@@ -871,6 +935,13 @@ def main():
             if not user_query.strip():
                 st.error("Please enter a task description.")
             else:
+                # Check backend health before processing
+                is_healthy, status_message = check_backend_health(api_url)
+                if not is_healthy:
+                    st.error(f"❌ Backend is not available: {status_message}")
+                    st.warning("Please check your backend server configuration or try again later.")
+                    st.stop()
+                
                 pdf_text = None
                 final_url = None
                 
@@ -904,7 +975,7 @@ def main():
                         status_text.markdown("**Processing with AI agents...**")
                         progress_bar.progress(60)
                         
-                        result = call_api(task_spec, api_url=DEFAULT_API_URL, pdf_text=pdf_text)
+                        result = call_api(task_spec, api_url=api_url, pdf_text=pdf_text)
                         
                         progress_bar.progress(80)
                         status_text.markdown("**Finalizing results...**")
