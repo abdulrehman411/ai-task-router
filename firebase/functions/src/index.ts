@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { TaskSpec, FinalPackage } from "./schemas";
 import { executePipeline } from "./graph";
+import { Request, Response } from "express";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -10,7 +11,7 @@ admin.initializeApp();
 const cors = require('cors')({origin: true});
 
 // Health check endpoint
-export const health = functions.https.onRequest(async (request, response) => {
+export const health = functions.https.onRequest(async (request: Request, response: Response) => {
   cors(request, response, async () => {
     try {
       response.status(200).json({
@@ -18,7 +19,7 @@ export const health = functions.https.onRequest(async (request, response) => {
         timestamp: new Date().toISOString(),
         service: "ai-task-router-backend"
       });
-    } catch (error) {
+    } catch (error: any) {
       response.status(500).json({
         status: "unhealthy",
         error: error.message
@@ -28,7 +29,7 @@ export const health = functions.https.onRequest(async (request, response) => {
 });
 
 // Main task processing endpoint
-export const generate = functions.https.onRequest(async (request, response) => {
+export const generate = functions.https.onRequest(async (request: Request, response: Response) => {
   cors(request, response, async () => {
     // Only allow POST requests
     if (request.method !== 'POST') {
@@ -49,7 +50,7 @@ export const generate = functions.https.onRequest(async (request, response) => {
       const result: FinalPackage = await executePipeline(taskSpec);
       
       response.status(200).json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing task:', error);
       response.status(500).json({
         error: 'Internal server error',
@@ -60,7 +61,7 @@ export const generate = functions.https.onRequest(async (request, response) => {
 });
 
 // PDF text extraction endpoint
-export const extractPdf = functions.https.onRequest(async (request, response) => {
+export const extractPdf = functions.https.onRequest(async (request: Request, response: Response) => {
   cors(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
@@ -79,7 +80,7 @@ export const extractPdf = functions.https.onRequest(async (request, response) =>
       const text = await extractPdfText(url);
       
       response.status(200).json({ text });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error extracting PDF:', error);
       response.status(500).json({
         error: 'PDF extraction failed',
@@ -90,7 +91,7 @@ export const extractPdf = functions.https.onRequest(async (request, response) =>
 });
 
 // URL content fetching endpoint
-export const fetchUrl = functions.https.onRequest(async (request, response) => {
+export const fetchUrl = functions.https.onRequest(async (request: Request, response: Response) => {
   cors(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
@@ -109,7 +110,7 @@ export const fetchUrl = functions.https.onRequest(async (request, response) => {
       const text = await fetchUrlContent(url);
       
       response.status(200).json({ text });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching URL:', error);
       response.status(500).json({
         error: 'URL fetch failed',
@@ -134,17 +135,17 @@ async function fetchUrlContent(url: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     
-    client.get(url, (res) => {
+    client.get(url, (res: any) => {
       let data = '';
       
-      res.on('data', (chunk) => {
+      res.on('data', (chunk: any) => {
         data += chunk;
       });
       
       res.on('end', () => {
         resolve(data);
       });
-    }).on('error', (err) => {
+    }).on('error', (err: any) => {
       reject(err);
     });
   });
