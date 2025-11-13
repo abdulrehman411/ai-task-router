@@ -1,0 +1,35 @@
+{
+  "name": "ai-task-router-backend",
+  "description": "AI Task Router Backend on Firebase Cloud Functions",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-functions": "^4.5.0",
+    "firebase-admin": "^11.11.0",
+    "langchain": "^0.1.0",
+    "langgraph": "^0.0.20",
+    "langchain-openai": "^0.0.5",
+    "langchain-core": "^0.1.0",
+    "pydantic": "^2.0.0",
+    "trafilatura": "^1.6.0",
+    "pymupdf": "^1.23.0",
+    "python-dotenv": "^1.0.0",
+    "httpx": "^0.25.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
