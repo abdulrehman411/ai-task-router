@@ -2,7 +2,6 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { TaskSpec, FinalPackage } from "./schemas";
 import { executePipeline } from "./graph";
-import { Request, Response } from "express";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -11,8 +10,8 @@ admin.initializeApp();
 const cors = require('cors')({origin: true});
 
 // Health check endpoint
-export const health = functions.https.onRequest(async (request: Request, response: Response) => {
-  cors(request, response, async () => {
+export const health = functions.https.onRequest((request, response) => {
+  cors(request, response, () => {
     try {
       response.status(200).json({
         status: "healthy",
@@ -22,14 +21,14 @@ export const health = functions.https.onRequest(async (request: Request, respons
     } catch (error: any) {
       response.status(500).json({
         status: "unhealthy",
-        error: error.message
+        error: error?.message || 'Unknown error'
       });
     }
   });
 });
 
 // Main task processing endpoint
-export const generate = functions.https.onRequest(async (request: Request, response: Response) => {
+export const generate = functions.https.onRequest((request, response) => {
   cors(request, response, async () => {
     // Only allow POST requests
     if (request.method !== 'POST') {
@@ -41,7 +40,7 @@ export const generate = functions.https.onRequest(async (request: Request, respo
       // Validate request body
       const taskSpec: TaskSpec = request.body;
       
-      if (!taskSpec.user_query) {
+      if (!taskSpec?.user_query) {
         response.status(400).json({ error: 'user_query is required' });
         return;
       }
@@ -54,14 +53,14 @@ export const generate = functions.https.onRequest(async (request: Request, respo
       console.error('Error processing task:', error);
       response.status(500).json({
         error: 'Internal server error',
-        message: error.message
+        message: error?.message || 'Unknown error'
       });
     }
   });
 });
 
 // PDF text extraction endpoint
-export const extractPdf = functions.https.onRequest(async (request: Request, response: Response) => {
+export const extractPdf = functions.https.onRequest((request, response) => {
   cors(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
@@ -84,14 +83,14 @@ export const extractPdf = functions.https.onRequest(async (request: Request, res
       console.error('Error extracting PDF:', error);
       response.status(500).json({
         error: 'PDF extraction failed',
-        message: error.message
+        message: error?.message || 'Unknown error'
       });
     }
   });
 });
 
 // URL content fetching endpoint
-export const fetchUrl = functions.https.onRequest(async (request: Request, response: Response) => {
+export const fetchUrl = functions.https.onRequest((request, response) => {
   cors(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
@@ -114,7 +113,7 @@ export const fetchUrl = functions.https.onRequest(async (request: Request, respo
       console.error('Error fetching URL:', error);
       response.status(500).json({
         error: 'URL fetch failed',
-        message: error.message
+        message: error?.message || 'Unknown error'
       });
     }
   });
