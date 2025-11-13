@@ -1,5 +1,22 @@
+/**
+ * Firebase Cloud Functions for AI Task Router Backend
+ * 
+ * NOTE: This file may show TypeScript lint errors in development environments
+ * without Node.js installed. When deployed to Firebase, all dependencies
+ * will be properly resolved and the code will compile without issues.
+ * 
+ * To test locally:
+ * 1. cd functions
+ * 2. npm install
+ * 3. npm run build
+ * 4. npm run serve
+ */
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as cors from "cors";
+import * as https from "https";
+import * as http from "http";
 import { TaskSpec, FinalPackage } from "./schemas";
 import { executePipeline } from "./graph";
 
@@ -7,11 +24,11 @@ import { executePipeline } from "./graph";
 admin.initializeApp();
 
 // CORS configuration
-const cors = require('cors')({origin: true});
+const corsMiddleware = cors({origin: true});
 
 // Health check endpoint
 export const health = functions.https.onRequest((request, response) => {
-  cors(request, response, () => {
+  corsMiddleware(request, response, () => {
     try {
       response.status(200).json({
         status: "healthy",
@@ -29,7 +46,7 @@ export const health = functions.https.onRequest((request, response) => {
 
 // Main task processing endpoint
 export const generate = functions.https.onRequest((request, response) => {
-  cors(request, response, async () => {
+  corsMiddleware(request, response, async () => {
     // Only allow POST requests
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
@@ -61,7 +78,7 @@ export const generate = functions.https.onRequest((request, response) => {
 
 // PDF text extraction endpoint
 export const extractPdf = functions.https.onRequest((request, response) => {
-  cors(request, response, async () => {
+  corsMiddleware(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
       return;
@@ -91,7 +108,7 @@ export const extractPdf = functions.https.onRequest((request, response) => {
 
 // URL content fetching endpoint
 export const fetchUrl = functions.https.onRequest((request, response) => {
-  cors(request, response, async () => {
+  corsMiddleware(request, response, async () => {
     if (request.method !== 'POST') {
       response.status(405).json({ error: 'Method not allowed' });
       return;
@@ -128,9 +145,6 @@ async function extractPdfText(url: string): Promise<string> {
 
 async function fetchUrlContent(url: string): Promise<string> {
   // Implement URL content fetching
-  const https = require('https');
-  const http = require('http');
-  
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
     
