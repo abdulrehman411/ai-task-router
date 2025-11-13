@@ -1,0 +1,38 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: ai-task-router-api
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.api:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PORT
+        value: 8000
+    
+  # Streamlit Frontend Service  
+  - type: web
+    name: ai-task-router-ui
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0"
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: API_URL
+        value: https://ai-task-router-api.onrender.com
+      - key: PORT
+        value: 8501
+
+databases:
+  # Not needed for this application, but included for future expansion
+  - name: ai-task-router-db
+    databaseName: airtaskrouter
+    user: airtaskrouter
