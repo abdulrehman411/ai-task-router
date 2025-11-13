@@ -17,10 +17,10 @@ from app.schemas import TaskSpec, FinalPackage
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Task Router - Firebase Powered",
-    page_icon="🔥",
+    page_title="AI Task Router",
+    page_icon=None,
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize session state
@@ -34,25 +34,7 @@ if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = True
 
 # API Configuration
-# Firebase Functions URL - replace with your actual Firebase project URL
-FIREBASE_PROJECT_URL = os.getenv("FIREBASE_PROJECT_URL", "https://us-central1-ai-task-router.cloudfunctions.net")
-DEFAULT_API_URL = f"{FIREBASE_PROJECT_URL}/generate"
-HEALTH_CHECK_URL = f"{FIREBASE_PROJECT_URL}/health"
-
-def check_backend_health(api_url: str = HEALTH_CHECK_URL) -> tuple[bool, str]:
-    """Check if Firebase backend is running and healthy."""
-    try:
-        response = requests.get(api_url, timeout=10)
-        if response.status_code == 200:
-            return True, "Firebase backend is healthy"
-        else:
-            return False, f"Backend returned status {response.status_code}"
-    except requests.exceptions.Timeout:
-        return False, "Firebase backend is not responding (timeout)"
-    except requests.exceptions.ConnectionError:
-        return False, "Cannot connect to Firebase backend"
-    except requests.exceptions.RequestException as e:
-        return False, f"Firebase connection error: {str(e)}"
+DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def extract_text_from_pdf(uploaded_file) -> str:
     """Extract text from uploaded PDF file."""
@@ -805,60 +787,12 @@ def main():
     # Apply CSS based on theme
     st.markdown(get_css(st.session_state.dark_mode), unsafe_allow_html=True)
     
-    # Firebase Configuration Sidebar
-    with st.sidebar:
-        st.header("🔥 Firebase Configuration")
-        
-        # Firebase Project URL Configuration
-        st.subheader("Backend Settings")
-        firebase_url = st.text_input(
-            "Firebase Project URL",
-            value=FIREBASE_PROJECT_URL,
-            help="Your Firebase Cloud Functions URL"
-        )
-        
-        # Update API URLs based on Firebase URL
-        api_url = f"{firebase_url}/generate"
-        health_url = f"{firebase_url}/health"
-        
-        # Display current endpoints
-        st.subheader("📡 API Endpoints")
-        st.code(f"Health: {health_url}")
-        st.code(f"Generate: {api_url}")
-        
-        st.divider()
-        
-        # Manual health check
-        if st.button("🔄 Check Firebase Status", type="secondary"):
-            with st.spinner("Checking Firebase backend..."):
-                is_healthy, status_message = check_backend_health(health_url)
-                if is_healthy:
-                    st.success("✅ Firebase backend is healthy!")
-                else:
-                    st.error(f"❌ {status_message}")
-        
-        st.divider()
-        
-        # Firebase info
-        st.subheader("ℹ️ Firebase Info")
-        st.info("🔥 Connected to Firebase Cloud Functions")
-        st.caption("Backend runs on serverless Firebase Functions")
-    
     # Theme Toggle Button (Top Right)
-    col_toggle, col_status, _ = st.columns([1, 2, 20])
+    col_toggle, _ = st.columns([1, 20])
     with col_toggle:
         if st.button("🌙" if not st.session_state.dark_mode else "☀️", key="theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
-    
-    with col_status:
-        # Check Firebase backend health
-        is_healthy, status_message = check_backend_health(health_url)
-        if is_healthy:
-            st.success("🟢 Firebase Online")
-        else:
-            st.error("🔴 Firebase Offline")
-            st.caption(status_message)
     
     # Header Section
     st.markdown("""
@@ -937,13 +871,6 @@ def main():
             if not user_query.strip():
                 st.error("Please enter a task description.")
             else:
-                # Check Firebase backend health before processing
-                is_healthy, status_message = check_backend_health(health_url)
-                if not is_healthy:
-                    st.error(f"❌ Firebase backend is not available: {status_message}")
-                    st.warning("Please check your Firebase configuration or try again later.")
-                    st.stop()
-                
                 pdf_text = None
                 final_url = None
                 
@@ -977,7 +904,7 @@ def main():
                         status_text.markdown("**Processing with AI agents...**")
                         progress_bar.progress(60)
                         
-                        result = call_api(task_spec, api_url=api_url, pdf_text=pdf_text)
+                        result = call_api(task_spec, api_url=DEFAULT_API_URL, pdf_text=pdf_text)
                         
                         progress_bar.progress(80)
                         status_text.markdown("**Finalizing results...**")
