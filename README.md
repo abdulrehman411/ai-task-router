@@ -363,9 +363,6 @@ The production-ready Streamlit UI provides a comprehensive interface:
 - [ ] Few-shot classifier for routing
 - [ ] Token usage tracking
 
-## 📝 License
-
-MIT License
 
 ## 🤝 Contributing
 
